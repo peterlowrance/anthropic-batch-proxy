@@ -14,9 +14,10 @@ import { startProxy } from "../src/proxy.js";
 
 const upstream = process.env.BATCH_PROXY_UPSTREAM ?? "https://api.anthropic.com";
 const claudeBin = process.env.ANTHROPIC_BATCH_CMD ?? process.env.CLAUDE_BATCH_CMD ?? "claude";
+const cacheTtl = process.env.BATCH_PROXY_CACHE_TTL ?? "1h";
 const childArgs = process.argv.slice(2);
 
-const { server, baseUrl } = await startProxy({ port: 0, host: "127.0.0.1", upstream });
+const { server, baseUrl } = await startProxy({ port: 0, host: "127.0.0.1", upstream, cacheTtl });
 
 const child = spawn(claudeBin, childArgs, {
   stdio: "inherit",

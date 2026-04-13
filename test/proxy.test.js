@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { messageToSseFrames } from "../src/proxy.js";
+import { messageToSseFrames, rewriteCacheControl } from "../src/proxy.js";
 
 function parseFrames(frames) {
   return frames.map((f) => {
@@ -105,6 +105,52 @@ test("thinking block emits thinking_delta and signature_delta", () => {
     e.event === "content_block_start" && e.data.index === 1
   );
   assert.equal(textStart.data.content_block.type, "text");
+});
+
+test("rewriteCacheControl 1h sets ttl on every cache_control", () => {
+  const body = {
+    system: [
+      { type: "text", text: "long instructions", cache_control: { type: "ephemeral" } },
+    ],
+    messages: [
+      { role: "user", content: [
+        { type: "text", text: "hi", cache_control: { type: "ephemeral", ttl: "5m" } },
+      ]},
+    ],
+    tools: [
+      { name: "x", cache_control: { type: "ephemeral" } },
+    ],
+  };
+  rewriteCacheControl(body, "1h");
+  assert.equal(body.system[0].cache_control.ttl, "1h");
+  assert.equal(body.messages[0].content[0].cache_control.ttl, "1h"); // overrides 5m
+  assert.equal(body.tools[0].cache_control.ttl, "1h");
+});
+
+test("rewriteCacheControl 5m strips ttl (back to API default)", () => {
+  const body = {
+    system: [{ type: "text", text: "x", cache_control: { type: "ephemeral", ttl: "1h" } }],
+  };
+  rewriteCacheControl(body, "5m");
+  assert.equal(body.system[0].cache_control.ttl, undefined);
+  assert.equal(body.system[0].cache_control.type, "ephemeral"); // type preserved
+});
+
+test("rewriteCacheControl passthrough leaves body untouched", () => {
+  const body = {
+    system: [{ type: "text", text: "x", cache_control: { type: "ephemeral", ttl: "1h" } }],
+    messages: [{ role: "user", content: "hi" }],
+  };
+  const before = JSON.stringify(body);
+  rewriteCacheControl(body, "passthrough");
+  assert.equal(JSON.stringify(body), before);
+});
+
+test("rewriteCacheControl handles bodies with no cache_control", () => {
+  const body = { messages: [{ role: "user", content: "hello" }], max_tokens: 100 };
+  const before = JSON.stringify(body);
+  rewriteCacheControl(body, "1h");
+  assert.equal(JSON.stringify(body), before);
 });
 
 test("empty content produces just start + delta + stop", () => {

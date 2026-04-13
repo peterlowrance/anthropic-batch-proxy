@@ -122,6 +122,30 @@ async function readRaw(req) {
   return Buffer.concat(chunks);
 }
 
+// --- Cache TTL rewrite --------------------------------------------------
+
+const VALID_CACHE_TTLS = new Set(["1h", "5m", "passthrough"]);
+
+/**
+ * Walk a request body and normalize every cache_control's ttl.
+ *  - "1h":          set ttl="1h" on every cache_control
+ *  - "5m":          delete ttl (5m is the API default)
+ *  - "passthrough": leave caller's cache_control untouched
+ * Mutates in place.
+ */
+export function rewriteCacheControl(obj, ttl) {
+  if (ttl === "passthrough" || obj == null || typeof obj !== "object") return;
+  if (Array.isArray(obj)) {
+    for (const item of obj) rewriteCacheControl(item, ttl);
+    return;
+  }
+  if (obj.cache_control && typeof obj.cache_control === "object") {
+    if (ttl === "5m") delete obj.cache_control.ttl;
+    else obj.cache_control.ttl = ttl;
+  }
+  for (const key of Object.keys(obj)) rewriteCacheControl(obj[key], ttl);
+}
+
 // --- Batch lifecycle ----------------------------------------------------
 
 async function submitBatch(upstream, headers, params) {
@@ -178,6 +202,8 @@ async function handleMessages(req, res, cfg) {
 
   const streamRequested = body.stream === true;
   delete body.stream;
+
+  rewriteCacheControl(body, cfg.cacheTtl);
 
   const headers = forwardHeaders(req);
   const sessionId = req.headers["x-claude-code-session-id"] ?? "unknown";
@@ -311,8 +337,12 @@ export function startProxy({
   pollStart = 5,
   pollMax = 60,
   pollMult = 2,
+  cacheTtl = "1h",
 } = {}) {
-  const cfg = { upstream, pollStart, pollMax, pollMult };
+  if (!VALID_CACHE_TTLS.has(cacheTtl)) {
+    throw new Error(`cacheTtl must be one of ${[...VALID_CACHE_TTLS].join(", ")}, got: ${cacheTtl}`);
+  }
+  const cfg = { upstream, pollStart, pollMax, pollMult, cacheTtl };
 
   const server = http.createServer((req, res) => {
     const url = req.url?.split("?")[0];

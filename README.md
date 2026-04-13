@@ -36,9 +36,10 @@ result. Callers see a slow-but-standard Messages response.
 - **Not for interactive use.** Anything a human watches.
 - **Claude Code works.** Long SSE holds + ping keepalives survive the
   client's read timeout. Multi-turn tool-use loops work end-to-end.
-- **Prompt caching survives tight turns** (hit rate was >90% in testing)
-  but is fragile. If a batch takes >5min, you fall off the ephemeral
-  cache and cost jumps.
+- **Prompt caching is upgraded to 1-hour TTL by default**, so cache
+  survives slow batch turns. Costs ~30% more on cache writes than the
+  5-minute default but breaks even after a single cache miss. Set
+  `BATCH_PROXY_CACHE_TTL` to override (`5m` or `passthrough`).
 - **No SLA. No retries. No resumption on disconnect.** If your client
   closes mid-batch, the batch keeps running upstream (wasted spend) and
   the request fails.
@@ -114,6 +115,7 @@ await stop();
 | `BATCH_PROXY_POLL_START` | `5` | Initial poll interval (seconds) |
 | `BATCH_PROXY_POLL_MAX` | `60` | Max poll interval (seconds) |
 | `BATCH_PROXY_POLL_MULT` | `2` | Exponential backoff multiplier |
+| `BATCH_PROXY_CACHE_TTL` | `1h` | Rewrite client `cache_control` to this TTL. One of `1h`, `5m`, `passthrough`. |
 
 Auth: the proxy forwards whatever `x-api-key` / `Authorization` header the
 client sends. No key is stored in the proxy.
