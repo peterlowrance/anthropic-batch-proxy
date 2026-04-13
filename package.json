@@ -1,6 +1,15 @@
 {
   "name": "anthropic-batch-proxy",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "author": "peterlowrance <peterlowrance@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peterlowrance/anthropic-batch-proxy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/peterlowrance/anthropic-batch-proxy/issues"
+  },
+  "homepage": "https://github.com/peterlowrance/anthropic-batch-proxy#readme",
   "description": "Transparent proxy that routes Anthropic Messages calls through the Message Batches API for 50% cheaper inference in exchange for minutes-per-turn latency. For long-running unattended agent tasks.",
   "keywords": [
     "anthropic",
