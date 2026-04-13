@@ -1,0 +1,35 @@
+{
+  "name": "anthropic-batch-proxy",
+  "version": "0.1.0",
+  "description": "Transparent proxy that routes Anthropic Messages calls through the Message Batches API for 50% cheaper inference in exchange for minutes-per-turn latency. For long-running unattended agent tasks.",
+  "keywords": [
+    "anthropic",
+    "claude-code",
+    "batch",
+    "proxy",
+    "llm",
+    "agent",
+    "gateway",
+    "messages-api"
+  ],
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "anthropic-batch": "./bin/anthropic-batch.js",
+    "anthropic-batch-proxy": "./bin/anthropic-batch-proxy.js"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "license": "MIT"
+}
